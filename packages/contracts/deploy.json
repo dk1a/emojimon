@@ -22,11 +22,6 @@
       "writeAccess": ["CounterComponent", "EncounterComponent", "OwnedByComponent"]
     },
     {
-      "name": "InitSystem",
-      "writeAccess": ["EncounterTriggerComponent", "MapConfigComponent", "ObstructionComponent", "PositionComponent"],
-      "initialize": "new bytes(0)"
-    },
-    {
       "name": "JoinGameSystem",
       "writeAccess": ["EncounterableComponent", "MovableComponent", "PlayerComponent", "PositionComponent"]
     },
@@ -34,5 +29,6 @@
       "name": "MoveSystem",
       "writeAccess": ["EncounterComponent", "MonsterTypeComponent", "PositionComponent"]
     }
-  ]
+  ],
+  "initializers": ["LibInit"]
 }

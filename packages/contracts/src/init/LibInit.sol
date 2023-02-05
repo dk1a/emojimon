@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
-import { System, IWorld } from "solecs/System.sol";
+import { System, IWorld, IUint256Component } from "solecs/System.sol";
 import { getAddressById } from "solecs/utils.sol";
 import { MapConfigComponent, ID as MapConfigComponentID, MapConfig } from "components/MapConfigComponent.sol";
 import { PositionComponent, ID as PositionComponentID, Coord } from "components/PositionComponent.sol";
@@ -8,20 +8,25 @@ import { ObstructionComponent, ID as ObstructionComponentID } from "components/O
 import { EncounterTriggerComponent, ID as EncounterTriggerComponentID } from "components/EncounterTriggerComponent.sol";
 import { TerrainType } from "../TerrainType.sol";
 
-uint256 constant ID = uint256(keccak256("system.Init"));
+library LibInit {
+  struct Comps {
+    MapConfigComponent mapConfig;
+    PositionComponent position;
+    ObstructionComponent obstruction;
+    EncounterTriggerComponent encounterTrigger;
+  }
 
-contract InitSystem is System {
-  constructor(IWorld _world, address _components) System(_world, _components) {}
+  function init(IWorld world) internal {
+    IUint256Component components = world.components();
 
-  function execute(bytes memory data) public returns (bytes memory) {
-    MapConfigComponent mapConfig = MapConfigComponent(getAddressById(components, MapConfigComponentID));
-    if (mapConfig.isSet()) return new bytes(0);
+    Comps memory comps = Comps({
+      mapConfig: MapConfigComponent(getAddressById(components, MapConfigComponentID)),
+      position: PositionComponent(getAddressById(components, PositionComponentID)),
+      obstruction: ObstructionComponent(getAddressById(components, ObstructionComponentID)),
+      encounterTrigger: EncounterTriggerComponent(getAddressById(components, EncounterTriggerComponentID))
+    });
 
-    PositionComponent position = PositionComponent(getAddressById(components, PositionComponentID));
-    ObstructionComponent obstruction = ObstructionComponent(getAddressById(components, ObstructionComponentID));
-    EncounterTriggerComponent encounterTrigger = EncounterTriggerComponent(
-      getAddressById(components, EncounterTriggerComponentID)
-    );
+    if (comps.mapConfig.isSet()) return;
 
     // Alias these to make em easier to draw a tile map
     TerrainType O = TerrainType.None;
@@ -63,15 +68,15 @@ contract InitSystem is System {
         terrain[(y * width) + x] = bytes1(uint8(terrainType));
 
         uint256 entity = world.getUniqueEntityId();
-        position.set(entity, Coord(int32(x), int32(y)));
+        comps.position.set(entity, Coord(int32(x), int32(y)));
         if (terrainType == TerrainType.Boulder) {
-          obstruction.set(entity);
+          comps.obstruction.set(entity);
         } else if (terrainType == TerrainType.TallGrass) {
-          encounterTrigger.set(entity);
+          comps.encounterTrigger.set(entity);
         }
       }
     }
 
-    mapConfig.set(MapConfig({ width: width, height: height, terrain: string(terrain) }));
+    comps.mapConfig.set(MapConfig({ width: width, height: height, terrain: string(terrain) }));
   }
 }
